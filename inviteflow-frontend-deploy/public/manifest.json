@@ -1,0 +1,8 @@
+{
+  "short_name": "InviteFlow",
+  "name": "InviteFlow - Digital Invitation System",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0a0c10",
+  "background_color": "#0a0c10"
+}
