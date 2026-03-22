@@ -1,6 +1,6 @@
 // ============================================================
 //  Invitations Controller
-//  src/controllers/invitations.controller.js
+const smsService = require('../services/sms.service');
 // ============================================================
 const { db }   = require('../config/database');
 const smsService = require('../services/sms.service');
