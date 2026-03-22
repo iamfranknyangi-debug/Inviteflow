@@ -40,13 +40,3 @@ const db = {
 
 module.exports = { db };
 ```
-
-Click **"Commit changes"** → **"Commit directly to main"** → **"Commit changes"**
-
----
-
-Then go to Render → **Inviteflow-3** → **"Manual Deploy"** → **"Deploy latest commit"**
-
-After it deploys, visit:
-```
-https://inviteflow-3.onrender.com/health
