@@ -1,0 +1,113 @@
+version: "3.9"
+
+# ============================================================
+#  InviteFlow — One-Command Docker Setup
+#  Run:  docker-compose up --build
+#  Open: http://localhost:3000
+#  Login: admin / admin123
+# ============================================================
+
+services:
+
+  # ── 1. PostgreSQL Database ─────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: inviteflow_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       inviteflow
+      POSTGRES_USER:     inviteflow_user
+      POSTGRES_PASSWORD: inviteflow_pass_2025
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inviteflow_user -d inviteflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - inviteflow_net
+
+  # ── 2. Redis Cache ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: inviteflow_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - inviteflow_net
+
+  # ── 3. Backend API ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: inviteflow_api
+    restart: unless-stopped
+    depends_on:
+      db:    { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV:        development
+      PORT:            5000
+      DB_HOST:         db
+      DB_PORT:         5432
+      DB_NAME:         inviteflow
+      DB_USER:         inviteflow_user
+      DB_PASSWORD:     inviteflow_pass_2025
+      REDIS_URL:       redis://redis:6379
+      JWT_SECRET:      inviteflow_jwt_secret_change_in_production_2025
+      QR_SECRET:       inviteflow_qr_secret_change_in_production_2025
+      APP_URL:         http://localhost:5000
+      FRONTEND_URL:    http://localhost:3000
+      QR_BASE_URL:     http://localhost:3000/verify
+      AT_API_KEY:      ""
+      AT_USERNAME:     sandbox
+      AT_ENVIRONMENT:  sandbox
+      AWS_ACCESS_KEY_ID:     ""
+      AWS_SECRET_ACCESS_KEY: ""
+      AWS_S3_BUCKET:         ""
+    volumes:
+      - uploads:/app/uploads
+      - logs:/app/logs
+    ports:
+      - "5000:5000"
+    networks:
+      - inviteflow_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── 4. Frontend ────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: http://localhost:5000/api
+    container_name: inviteflow_web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    networks:
+      - inviteflow_net
+
+volumes:
+  db_data:
+  uploads:
+  logs:
+
+networks:
+  inviteflow_net:
+    driver: bridge
