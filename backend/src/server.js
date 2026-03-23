@@ -103,3 +103,13 @@ app.get('/setup', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+app.get('/setup', async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    await db.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).catch(()=>{});
+    await db.query(`CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), username VARCHAR(60) UNIQUE NOT NULL, email VARCHAR(120) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, full_name VARCHAR(120) NOT NULL, role VARCHAR(30) DEFAULT 'admin', is_active BOOLEAN DEFAULT TRUE, last_login TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW())`);
+    const hash = await bcrypt.hash('admin123', 10);
+    await db.query(`INSERT INTO users (username,email,password,full_name,role) VALUES ('admin','admin@inviteflow.app',$1,'System Administrator','superadmin') ON CONFLICT (username) DO UPDATE SET password=$1`, [hash]);
+    res.json({ success:true, message:'Admin created! Login: admin / admin123' });
+  } catch(err) { res.status(500).json({ success:false, message:err.message }); }
+});
